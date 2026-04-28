@@ -1,0 +1,8 @@
+Packages needed to run project:
+- node
+- npm
+
+
+
+Run commands in server folder:
+npm install better-sqlite3
