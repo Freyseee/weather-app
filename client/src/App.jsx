@@ -6,15 +6,17 @@ import './App.css'
 
 const ENDPOINTS = [
   'http://localhost:3001/api/readings',
-  'http://192.168.1.159:3001/api/readings'  // network ip (might need to replace)
+  'http://192.168.1.159:3001/api/readings'  // network address (change for local network hosting)
 ]
 
 function App() {
-  const [readings, setReadings] = useState([])
-  const [activeMetric, setActiveMetric] = useState('temperature')
-  const [lastUpdated, setLastUpdated] = useState(null)
+  const [readings, setReadings] = useState([]) //This is what makes the graph autoamtically update.
+  const [activeMetric, setActiveMetric] = useState('temperature') //temperature is the most used weather metric by people so the chart will show temperature as default
+  const [lastUpdated, setLastUpdated] = useState(null) //Is set to null so that no chart is shown before a fetch has occured
 
-async function fetchReadings() { //fetches the weather data from first working url
+
+  // This method goes through all endpoints given in the ENDPOINTS variable and then tries each one till it finds one that works. 
+async function fetchReadings() { 
   for (const url of ENDPOINTS) {
     try {
       const res = await fetch(url)
@@ -30,16 +32,18 @@ async function fetchReadings() { //fetches the weather data from first working u
   console.error('All endpoints failed')
 }
 
+// updates every 5 minutes
   useEffect(() => {
     fetchReadings()
     const interval = setInterval(fetchReadings, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
+  //Returns the chart and UI stuff
   return (
     <div className="app">
       <h1>Weather Dashboard</h1>
-      <p className="location">H.C. Andersen Airport, Odense</p>
+      <p className="location">Odense, Danmark</p>
       {lastUpdated && (
         <p className="updated">Updated {lastUpdated.toLocaleTimeString()}</p>
       )}

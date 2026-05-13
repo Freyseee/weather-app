@@ -1,5 +1,5 @@
 # Weather Application - Setup and other info
-## Packages needed to run this project:
+## Packages needed to run this project
 - node
 - npm
 - sqlite3
@@ -8,12 +8,14 @@
 ## Running the project
 
 ### Server
-- navigate to the /server folder
-- node index.js
+- Open new terminal
+- Navigate to the /server folder
+- *node index.js*
 
 ### Client
-- navigate to /client folder
-- npm run dev
+- Open new terminal
+- Navigate to /client folder
+- *npm run dev*
 
 
 ## How it works
