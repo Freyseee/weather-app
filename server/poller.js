@@ -1,9 +1,10 @@
 const cron = require('node-cron'); //Used as the "clock"
 const db = require('./db');
+const broker = require('./eventBroker');
 
 async function fetchAndStore() {
   try {
-    const response = await fetch('https://dmi.cma.dk/api/weather/current/5000');
+    const response = await fetch('https://dmi.cma.dk/api/weather/current/5000'); //fetches from area code 5000 (Odense)
     const data = await response.json();
 
     const insert = db.prepare(`
@@ -18,14 +19,22 @@ async function fetchAndStore() {
       data.humidity
     );
 
-    console.log('Reading saved:', data.timestamp);
+    console.log('Successful data fetch:', data.timestamp);
+
+    broker.emit('new_event', { //This is where the broker is like "a new event has been recorded" and sends the data for that event. This is handled in the index file
+      timestamp: data.timestamp,
+      temperature: data.temperature.value,
+      wind_speed: data.wind.speed,
+      humidity: data.humidity
+    }); 
+
   } catch (error) {
-    console.error('Failed to fetch weather data:', error);
+    console.error('Fetch failed: ', error);
   }
 }
 
 fetchAndStore();
 
-cron.schedule('*/5 * * * *', fetchAndStore);
+cron.schedule('*/5 * * * *', fetchAndStore); //Uses cron to fetch new weather data every 5 minutes
 
 module.exports = { fetchAndStore };

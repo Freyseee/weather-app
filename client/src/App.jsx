@@ -33,11 +33,27 @@ async function fetchReadings() {
 }
 
 // updates every 5 minutes
-  useEffect(() => {
-    fetchReadings()
-    const interval = setInterval(fetchReadings, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
+useEffect(() => {
+  fetchReadings()
+
+  const eventSource = new EventSource('/api/events')
+
+  function handleNewReading(event) {
+    const reading = JSON.parse(event.data)
+
+    setReadings(prev => {
+      const updatedReadings = [...prev.slice(-23), reading] //This does so that there is always a maximum of 24 readings on the graph (takes the newest 23 from the readings and then adds the new one)
+      return updatedReadings
+    })
+      setLastUpdated(new Date());
+    }
+
+  eventSource.onmessage = handleNewReading;
+
+  return () => {
+    eventSource.close()
+  }
+}, [])
 
   //Returns the chart and UI stuff
   return (
