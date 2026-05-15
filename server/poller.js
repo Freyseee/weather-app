@@ -20,13 +20,13 @@ async function fetchAndStore() {
     );
 
     console.log('Successful data fetch:', data.timestamp);
-
+/*
     broker.emit('new_event', { //This is where the broker is like "a new event has been recorded" and sends the data for that event. This is handled in the index file
       timestamp: data.timestamp,
       temperature: data.temperature.value,
       wind_speed: data.wind.speed,
       humidity: data.humidity
-    }); 
+    }); */
 
   } catch (error) {
     console.error('Fetch failed: ', error);
@@ -35,6 +35,6 @@ async function fetchAndStore() {
 
 fetchAndStore();
 
-cron.schedule('*/5 * * * *', fetchAndStore); //Uses cron to fetch new weather data every 5 minutes
+cron.schedule('*/10 * * * *', fetchAndStore); //Uses cron to fetch new weather data every 10 minutes
 
 module.exports = { fetchAndStore };
