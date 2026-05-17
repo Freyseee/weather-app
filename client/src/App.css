@@ -84,3 +84,8 @@ h1 {
 .tabs button:hover:not(.active) {
   background: #f0f0f0;
 }
+
+button.active {
+  background-color: #4caf50;
+  color: white;
+}

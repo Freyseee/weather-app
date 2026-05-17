@@ -8,7 +8,7 @@ async function fetchAndStore() {
     const data = await response.json();
 
     const insert = db.prepare(`
-      INSERT INTO weather_readings (timestamp, temperature, wind_speed, humidity)
+      INSERT INTO weather_readings (timestamp, temperature, windspeed, humidity)
       VALUES (?, ?, ?, ?)
     `);
 

@@ -14,7 +14,7 @@ ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip,
 
 const metricConfig = {
   temperature: { label: 'Temperature (°C)', color: '#1D9E75' },
-  wind_speed:  { label: 'Wind speed (m/s)', color: '#378ADD' },
+  windspeed:  { label: 'Wind speed (m/s)', color: '#378ADD' },
   humidity:    { label: 'Humidity (%)',      color: '#BA7517' }
 }
 

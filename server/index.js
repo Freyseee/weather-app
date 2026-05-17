@@ -59,6 +59,7 @@ app.get('/api/:topic', (req, res) => { //This is where the clients will be able 
 
   req.on("close", () => {
     topicSubs.delete(res);
+    console.log("Client unsubscribed from: " + topic)
   });
 
 });

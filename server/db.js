@@ -8,7 +8,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,
     temperature REAL NOT NULL,
-    wind_speed REAL NOT NULL,
+    windspeed REAL NOT NULL,
     humidity REAL NOT NULL
   )
 `);

@@ -11,7 +11,7 @@ function DisplayingWeatherEntry({ readings }) {
       </div>
       <div className="card">
         <p className="card-label">Wind speed</p>
-        <p className="card-value">{latest.wind_speed.toFixed(1)} m/s</p>
+        <p className="card-value">{latest.windspeed.toFixed(1)} m/s</p>
       </div>
       <div className="card">
         <p className="card-label">Humidity</p>
