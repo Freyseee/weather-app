@@ -1,12 +1,19 @@
 const cron = require('node-cron'); //Used as the "clock"
 const db = require('./db');
-const broker = require('./eventBroker');
+const broker = require('./broker');
 
 async function fetchAndStore() {
   try {
     const response = await fetch('https://dmi.cma.dk/api/weather/current/5000'); //fetches from area code 5000 (Odense)
     const data = await response.json();
+    const last = db.prepare(`SELECT timestamp FROM weather_readings ORDER BY timestamp DESC LIMIT 1`).get();
 
+    if (last && last.timestamp === data.timestamp) { //We dont like data repeats here
+    console.log('No new data, skipping insert:', data.timestamp);
+    return;
+    }
+
+    //Save the datapoint
     const insert = db.prepare(`
       INSERT INTO weather_readings (timestamp, temperature, windspeed, humidity)
       VALUES (?, ?, ?, ?)
@@ -20,13 +27,17 @@ async function fetchAndStore() {
     );
 
     console.log('Successful data fetch:', data.timestamp);
-/*
-    broker.emit('new_event', { //This is where the broker is like "a new event has been recorded" and sends the data for that event. This is handled in the index file
-      timestamp: data.timestamp,
-      temperature: data.temperature.value,
-      wind_speed: data.wind.speed,
-      humidity: data.humidity
-    }); */
+
+    //PUBLISH
+    broker.publish('temperature', { value: data.temperature.value, timestamp: data.timestamp }); 
+    broker.publish('windspeed', { value: data.wind.speed, timestamp: data.timestamp });
+    broker.publish('humidity', { value: data.humidity, timestamp: data.timestamp });
+
+    console.log('Published to broker, subscriber counts:',
+    'temp:', broker.getSubscribers('temperature').size,
+    'wind:', broker.getSubscribers('windspeed').size,
+    'humidity:', broker.getSubscribers('humidity').size
+    );
 
   } catch (error) {
     console.error('Fetch failed: ', error);
@@ -35,6 +46,6 @@ async function fetchAndStore() {
 
 fetchAndStore();
 
-cron.schedule('*/10 * * * *', fetchAndStore); //Uses cron to fetch new weather data every 10 minutes
+cron.schedule('*/10 * * * *', fetchAndStore); //Uses cron to fetch new weather data every 10 minutes (which is how often the API updates)
 
 module.exports = { fetchAndStore };

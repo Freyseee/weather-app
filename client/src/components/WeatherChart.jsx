@@ -13,25 +13,31 @@ import { Line } from 'react-chartjs-2'
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 const metricConfig = {
-  temperature: { label: 'Temperature (°C)', color: '#1D9E75' },
-  windspeed:  { label: 'Wind speed (m/s)', color: '#378ADD' },
-  humidity:    { label: 'Humidity (%)',      color: '#BA7517' }
+  temperature: { label: 'Temperature (°C)', color: '#d45c16' },
+  humidity: { label: 'Humidity (%)', color: '#236bd8' },
+  windspeed: { label: 'Wind speed (m/s)', color: '#5dd467' }
 }
 
 function WeatherChart({ readings, metric }) {
   const config = metricConfig[metric]
+  const metricMap = readings[metric]
+
+  if (!metricMap || metricMap.size === 0) return <p>No data yet...</p>
+  if (metricMap.size === 1) return <p className="OutdatedWarningText">Possible outdated data displayed</p>
+
+  const entries = [...metricMap.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 
   const data = {
-    labels: readings.map(r => new Date(r.timestamp).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })),
+    labels: entries.map(([ts]) => new Date(ts).toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' })),
     datasets: [{
       label: config.label,
-      data: readings.map(r => r[metric]),
+      data: entries.map(([, val]) => val),
       borderColor: config.color,
-      backgroundColor: config.color + '22',
+      backgroundColor: config.color + '25',
       borderWidth: 2,
-      pointRadius: 3,
+      pointRadius: 5,
       fill: true,
-      tension: 0.35
+      tension: 0.3
     }]
   }
 
@@ -41,14 +47,11 @@ function WeatherChart({ readings, metric }) {
       legend: { display: false }
     },
     scales: {
-      x: { ticks: { maxTicksLimit: 8 } },
       y: { beginAtZero: false }
     }
   }
 
-  if (readings.length === 0) return <p>No data yet...</p>
-
-  return <Line data={data} options={options} />
+  return <Line key={metric} data={data} options={options} />
 }
 
 export default WeatherChart

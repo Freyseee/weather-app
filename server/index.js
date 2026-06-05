@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 const { Topics } = require('./topics');
+const broker = require('./broker');
 require('./poller');
 require('./topics')
 
@@ -12,16 +13,30 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/readings', (req, res) => { //Might change limit to a higher number
-  const readings = db.prepare(`
+app.get('/api/readings', (req, res) => {
+  const day = req.query.day ?? new Date().toISOString().split('T')[0]; //Choose which day you want
+  let readings = db.prepare(`
+    SELECT * FROM weather_readings
+    WHERE timestamp LIKE ?
+    ORDER BY timestamp ASC
+  `).all(`${day}%`);
+  if (readings.length === 0) {
+  let latest = db.prepare(`
     SELECT * FROM weather_readings
     ORDER BY timestamp DESC
-    LIMIT 24 
-  `).all();
+    LIMIT 1
+  `).get();
 
-  res.json(readings.reverse());
+  if (latest) 
+    readings = [latest];
+  }
+  res.json(readings);
 });
 
+
+app.get('/api/topics', (req, res) => { 
+  res.json([...Topics]);
+});
 
 
 //PUBLISH SUBSCRIBE PATTERN STUFF -----------------------------------------------------------------------------------
@@ -31,8 +46,9 @@ const subscribers = new Map();
 
 //get all subscribers that are subscribed to a specific topic
 function getSubscribers(topic) {
+  if (!subscribers.has(topic)) 
+    subscribers.set(topic, new Set()); 
 
-  if (!subscribers.has(topic)) subscribers.set(topic, new Set()); 
   return subscribers.get(topic);
 }
 
@@ -44,51 +60,32 @@ app.get('/api/:topic', (req, res) => { //This is where the clients will be able 
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders(); //Sends headers before continuing
 
-  if(!Topics.has(topic)){
+  if(!Topics.has(topic)){ //topics.js has the topics you can subscribe to
     res.write('Cannot subscribe to: ' + topic)
     return;
   }
 
-  //add the new subscriber to the topic
-  const topicSubs = getSubscribers(topic);
-  topicSubs.add(res);
-
   //confirm the connection is made
-  console.log("New subscriber: " + topic)
-  res.write('Successfully subscribed to: ' + topic)
+  broker.subscribe(topic, res);
+  console.log("New subscriber: " + topic);
+  res.write(`data: ${JSON.stringify({ connected: true })}\n\n`); //¯\_(ツ)_/¯
 
   req.on("close", () => {
-    topicSubs.delete(res);
-    console.log("Client unsubscribed from: " + topic)
+    broker.unsubscribe(topic, res);
+    console.log("Client unsubscribed from: " + topic);
   });
 
 });
 
-
-app.post("/publish/:topic", (req, res) => {
-  const { topic } = req.params;
-  const req_data = req.body;
-
-  const topicSubs = getSubscribers(topic);
-  if (topicSubs.size === 0) {
-    return res.json({ error: "No subscribers to topic: " + topic });
-  }
-
-  for (const client of topicSubs) {
-    client.write(`data: ${JSON.stringify(req.body)}\n\n`);;
-  }
-
-  console.log("Published to topic: " + topic);
-});
-
-
-app.get("/topics", (req, res) => {
-  res.json([...Topics]); 
+app.post("/publish/:topic", (req, res) => { //Redundant (for now at least)
+  broker.publish(req.params.topic, req.body);
+  console.log("Published to topic: " + req.params.topic);
+  res.json({ ok: true });
 });
 
 
 //--------------------------------------------------------------------------------------------------------------
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`); //Using port 3001
 });

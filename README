@@ -17,7 +17,7 @@
 - Navigate to /client folder
 - *npm run dev*
 
-
+OBS: Weather graph resets at 2am, but all data is still stored in the db
 
 ## How it works
 
@@ -26,11 +26,14 @@
 
 
 ### The server
-
+    Polling 
+    Publish Subscribe
+    3-layer architecture
 
 
 ### The client
-
+    Publish subscribe
+    3-layer architecture
 
 
 TO DO 
@@ -38,3 +41,4 @@ TO DO
 - Define axis on graph better
 - Refactor code
 - Maybe do so you can choose the postal code yourself
+- CSS

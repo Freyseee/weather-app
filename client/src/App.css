@@ -65,7 +65,7 @@ h1 {
   margin-bottom: 1rem;
 }
 
-.tabs button {
+button {
   padding: 6px 14px;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -75,17 +75,24 @@ h1 {
   color: #555;
 }
 
-.tabs button.active {
+button.active {
   background: #222;
   color: white;
   border-color: #222;
 }
 
-.tabs button:hover:not(.active) {
+button:hover:not(.active) {
   background: #f0f0f0;
 }
 
 button.active {
   background-color: #4caf50;
   color: white;
+}
+
+.OutdatedWarningText{
+  color: #e26f6f; 
+  font-style: italic;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
 }

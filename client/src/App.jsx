@@ -1,166 +1,183 @@
 import { useState, useEffect, useRef } from 'react'
 import WeatherChart from './components/WeatherChart'
-import DisplayingWeatherEntry from './components/displaying_weather_entry'
 import './App.css'
-
 
 const ENDPOINTS = [
   'http://localhost:3001/api/readings',
-  'http://192.168.1.159:3001/api/readings'  // network address (change for local network hosting)
+  'http://192.168.1.159:3001/api/readings'
 ]
 
 function App() {
-  const [readings, setReadings] = useState([]) //This is what makes the graph autoamtically update.
-  const [activeMetric, setActiveMetric] = useState('temperature') //temperature is the most used weather metric by people so the chart will show temperature as default
-  const [lastUpdated, setLastUpdated] = useState(null) //Is set to null so that no chart is shown before a fetch has occured
+  const [activeMetric, setActiveMetric] = useState('temperature')
+  const [lastUpdated, setLastUpdated] = useState(null)
   const [availableTopics, setAvailableTopics] = useState([])
   const [subscribedTopics, setSubscribedTopics] = useState(new Set())
-  const [showTopics, setShowTopics] = useState(false)
   const subscriptions = useRef(new Map())
-  const [page, setPage] = useState('topics') //Used to toggle the two pages
+  const [page, setPage] = useState('topics')
+  const [readings, setReadings] = useState({
+    temperature: new Map(),
+    windspeed: new Map(),
+    humidity: new Map()
+  })
 
-  // This method goes through all endpoints given in the ENDPOINTS variable and then tries each one till it finds one that works. 
-async function fetchReadings() { 
-  for (const url of ENDPOINTS) {
-    try {
-      const res = await fetch(url)
-      if (!res.ok) continue
-      const data = await res.json()
-      setReadings(data)
-      setLastUpdated(new Date())
-      return
-    } catch (err) {
-      console.log(`Failed to fetch from ${url}, trying next...`)
+  async function fetchReadings(day = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split('T')[0]) { //Gets weather data from today
+    for (const url of ENDPOINTS) {
+      try {
+        const res = await fetch(`${url}?day=${day}`)
+        if (!res.ok) continue
+        const data = await res.json()
+        const maps = { temperature: new Map(), windspeed: new Map(), humidity: new Map() }
+        for (const r of data) {
+          maps.temperature.set(r.timestamp, r.temperature)
+          maps.windspeed.set(r.timestamp, r.windspeed)
+          maps.humidity.set(r.timestamp, r.humidity)
+        }
+        setReadings(maps)
+        setLastUpdated(new Date())
+        return
+      } catch (err) {
+        console.log(`Failed to fetch from ${url}, trying next...`)
+      }
     }
+    console.error('All endpoints failed')
   }
-  console.error('All endpoints failed: Unable to retrieve data from database')
-}
 
-// updates every 5 minutes
-useEffect(() => {
-  fetchReadings()
+  useEffect(() => {
+    fetchReadings()
+    fetch("http://localhost:3001/api/topics")
+      .then(res => res.json())
+      .then(data => setAvailableTopics(data))
+  }, [])
 
-  fetch("http://localhost:3001/topics")
-    .then(res => res.json())
-    .then(data => setAvailableTopics(data));
-}, []);
+  function subscribe(topic) {
+    if (subscriptions.current.has(topic)) return
 
-//Subscribe to a topic
-function subscribe(topic) {
-  if (subscriptions.current.has(topic)) return;
+    const source = new EventSource(`http://localhost:3001/api/${topic}`)
+    source.onmessage = (e) => {
+      const newData = JSON.parse(e.data)
+      if (newData.connected) return
+      setReadings(prev => {
+        const updated = new Map(prev[topic])
+        if (updated.size >= 24) {
+          const oldest = [...updated.keys()].sort()[0]
+          updated.delete(oldest)
+        }
+        updated.set(newData.timestamp, newData.value)
+        return { ...prev, [topic]: updated }
+      })
+      setLastUpdated(new Date())
+    }
+    source.onerror = (e) => console.error(`SSE error on ${topic}:`, e)
 
-  const source = new EventSource(`http://localhost:3001/api/${topic}`);
-  source.onmessage = (e) => console.log(`[${topic}]`, JSON.parse(e.data));
-  source.onerror = (e) => console.error(`SSE error on ${topic}:`, e);
+    subscriptions.current.set(topic, source)
+    setSubscribedTopics(prev => new Set([...prev, topic]))
+  }
 
-  subscriptions.current.set(topic, source);
-  setSubscribedTopics(prev => new Set([...prev, topic]));
-}
+  function unsubscribe(topic) {
+    subscriptions.current.get(topic)?.close()
+    subscriptions.current.delete(topic)
+    setSubscribedTopics(prev => {
+      const next = new Set(prev)
+      next.delete(topic)
+      return next
+    })
+  }
 
-//Unsubscribe to a topic
-function unsubscribe(topic) {
-  subscriptions.current.get(topic)?.close();
-  subscriptions.current.delete(topic);
-  setSubscribedTopics(prev => {
-    const next = new Set(prev);
-    next.delete(topic);
-    return next;
-  });
-}
+  useEffect(() => {
+    return () => subscriptions.current.forEach(source => source.close())
+  }, [])
 
-// cleanup
-useEffect(() => {
-  return () => subscriptions.current.forEach(source => source.close());
-}, []);
-
-//Buttons and button events
-function toggleTopic(topic) {
-
+  function toggleTopic(topic) {
     if (subscriptions.current.has(topic)) {
       unsubscribe(topic)
       return
     }
-
     subscribe(topic)
   }
 
-  function confirmTopics(){
-    setPage('dashboard');
+  function confirmTopics() {
+    setPage('dashboard')
   }
 
   if (page === 'topics') {
+    return (
+      <div>
+        <h1>Choose Topics</h1>
+        {availableTopics.map(topic => (
+          <button
+            key={topic}
+            onClick={() => toggleTopic(topic)}
+            className={subscribedTopics.has(topic) ? 'active' : ''}
+          >
+            {topic.charAt(0).toUpperCase() + topic.slice(1)}
+          </button>
+        ))}
+        <button onClick={confirmTopics}>Confirm</button>
+      </div>
+    )
+  }
+
+  const hasData = readings.temperature.size > 0 || readings.humidity.size > 0 || readings.windspeed.size > 0
+
+  if (!hasData)
+    return <p>No data yet</p>
+
   return (
-    <div>
-      <h1>Choose Topics</h1>
-      {availableTopics.map(topic => (
-        <button
-          key={topic}
-          onClick={() => toggleTopic(topic)}
-          className={subscribedTopics.has(topic) ? 'active' : ''}
-        >
-          {topic}
-        </button>
-      ))}
-      <button onClick={confirmTopics}>Confirm</button>
+    <div className="app">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1>Weather Dashboard</h1>
+          <p className="location">Odense, Danmark</p>
+          {lastUpdated && (
+            <p className="updated">Updated {lastUpdated.toLocaleTimeString()}</p>
+          )}
+        </div>
+        <button className="topic-button" onClick={() => setPage('topics')}>Change Topics</button>
+      </div>
+
+      <div className="weather-cards">
+        {subscribedTopics.has('temperature') && (
+          <div className="card">
+            <p className="card-label">Temperature</p>
+            <p className="card-value">
+              {[...readings.temperature.values()].pop()?.toFixed(1)} °C
+            </p>
+          </div>
+        )}
+        {subscribedTopics.has('humidity') && (
+          <div className="card">
+            <p className="card-label">Humidity</p>
+            <p className="card-value">
+              {[...readings.humidity.values()].pop()} %
+            </p>
+          </div>
+        )}
+        {subscribedTopics.has('windspeed') && (
+          <div className="card">
+            <p className="card-label">Windspeed</p>
+            <p className="card-value">
+              {[...readings.windspeed.values()].pop()?.toFixed(1)} m/s
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="tabs">
+        {['temperature', 'humidity', 'windspeed']
+          .filter(metric => subscribedTopics.has(metric))
+          .map(metric => (
+            <button
+              key={metric}
+              className={activeMetric === metric ? 'active' : ''}
+              onClick={() => setActiveMetric(metric)}
+            >
+              {metric === 'temperature' ? 'Temperature' : metric === 'windspeed' ? 'Wind speed' : 'Humidity'}
+            </button>
+          ))}
+      </div>
+      <WeatherChart readings={readings} metric={activeMetric} />
     </div>
   )
 }
-
-const latest = readings[readings.length - 1]; //Gets newest entry
-
-if (!latest) 
-  return <p>No data yet</p>;
-
-return (
-  <div className="app">
-    <h1>Weather Dashboard</h1>
-    <p className="location">Odense, Danmark</p>
-    {lastUpdated && (
-      <p className="updated">Updated {lastUpdated.toLocaleTimeString()}</p>
-    )}
-
-
-
-    <div className="weather-cards">
-  {subscribedTopics.has('temperature') && (
-    <div className="card">
-      <p className="card-label">Temperature</p>
-      <p className="card-value">{latest.temperature.toFixed(1)} °C</p>
-    </div>
-  )}
-  {subscribedTopics.has('windspeed') && (
-    <div className="card">
-      <p className="card-label">Wind speed</p>
-      <p className="card-value">{latest.windspeed.toFixed(1)} m/s</p>
-    </div>
-  )}
-  {subscribedTopics.has('humidity') && (
-    <div className="card">
-      <p className="card-label">Humidity</p>
-      <p className="card-value">{latest.humidity} %</p>
-    </div>
-  )}
-</div>
-
-
-
-    <div className="tabs">
-  {['temperature', 'windspeed', 'humidity']
-    .filter(metric => subscribedTopics.has(metric))
-    .map(metric => (
-      <button
-        key={metric}
-        className={activeMetric === metric ? 'active' : ''}
-        onClick={() => setActiveMetric(metric)}
-      >
-        {metric === 'temperature' ? 'Temperature' : metric === 'windspeed' ? 'Wind speed' : 'Humidity'}
-      </button>
-    ))}
-    </div>
-    <WeatherChart readings={readings} metric={activeMetric} />
-  </div>
-)
-}
-
 
 export default App
