@@ -13,14 +13,15 @@ function App() {
   const [availableTopics, setAvailableTopics] = useState([])
   const [subscribedTopics, setSubscribedTopics] = useState(new Set())
   const subscriptions = useRef(new Map())
-  const [page, setPage] = useState('topics')
+  const [page, setPage] = useState('topics') //topic is the page you start on
+
   const [readings, setReadings] = useState({
     temperature: new Map(),
     windspeed: new Map(),
     humidity: new Map()
   })
 
-  async function fetchReadings(day = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().split('T')[0]) { //Gets weather data from today
+  async function fetchReadings(day = new Date().toISOString().split('T')[0]) { //Gets weather data from today
     for (const url of ENDPOINTS) {
       try {
         const res = await fetch(`${url}?day=${day}`)
@@ -120,7 +121,7 @@ function App() {
   const hasData = readings.temperature.size > 0 || readings.humidity.size > 0 || readings.windspeed.size > 0
 
   if (!hasData)
-    return <p>No data yet</p>
+   return <p>No data yet...</p>
 
   return (
     <div className="app">

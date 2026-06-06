@@ -39,7 +39,7 @@ app.get('/api/topics', (req, res) => {
 });
 
 
-//PUBLISH SUBSCRIBE PATTERN STUFF -----------------------------------------------------------------------------------
+//SSE things -----------------------------------------------------------------------------------
 
 // all subscribers are stored here with the topics they are subscribed to
 const subscribers = new Map();

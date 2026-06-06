@@ -1,10 +1,4 @@
 # Weather Application - Setup and other info
-## Packages needed to run this project
-- node
-- npm
-- sqlite3
-
-
 ## Running the project
 
 ### Server
@@ -17,28 +11,9 @@
 - Navigate to /client folder
 - *npm run dev*
 
-OBS: Weather graph resets at 2am, but all data is still stored in the db
-
-## How it works
-
-### The database
-    When the server is running, the weather API is polled every 5 minutes. Each reading is saved to the sqlite database (weather.db). When you open the client, the last 24 readings will be shown, and then every time a new data point is polled, it is added live onto the graph using the publish-subscribe pattern, whilst the oldest data point currently shown is removed.
+---
+    View client here: http://localhost:5173/
+---
 
 
-### The server
-    Polling 
-    Publish Subscribe
-    3-layer architecture
-
-
-### The client
-    Publish subscribe
-    3-layer architecture
-
-
-TO DO 
-- Make sure the distance between time on the graph is consistent
-- Define axis on graph better
-- Refactor code
-- Maybe do so you can choose the postal code yourself
-- CSS
+NOTICE: Weather graph resets at 2am, but all data is still stored in the db

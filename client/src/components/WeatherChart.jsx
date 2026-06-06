@@ -33,16 +33,16 @@ function WeatherChart({ readings, metric }) {
       label: config.label,
       data: entries.map(([, val]) => val),
       borderColor: config.color,
-      backgroundColor: config.color + '25',
-      borderWidth: 2,
-      pointRadius: 5,
-      fill: true,
-      tension: 0.3
+      backgroundColor: config.color + '25', //makes it look kinda see through-y
+      borderWidth: 2, 
+      pointRadius: 5, //How big the circles are on the data points
+      fill: true, //Fills graph in with the background colour
+      tension: 0.3 //How sharp it changes direction
     }]
   }
 
-  const options = {
-    responsive: true,
+  const options = {//DO NOT CHANGE THIS 
+    responsive: true, 
     plugins: {
       legend: { display: false }
     },
