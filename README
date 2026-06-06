@@ -1,9 +1,10 @@
 # Weather Application - Setup and other info
-## Running the project
 
-### FIRST TIME DO THIS
+## FIRST TIME DO THIS
 - navigate to client folder
 - *npm install*
+
+## Running the Weather App
 
 ### Server
 - Open new terminal
